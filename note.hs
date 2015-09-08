@@ -2,6 +2,8 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 import Data.IORef
+import Data.Atomics
+import Control.Concurrent
 
 data Val t = V t | Tombstone
 data EntryVal t = Val t | Copied (Val t)
@@ -13,7 +15,37 @@ data HyState k v = A (S1 k v)
                  | BA (S2 k v) (S1 k v)
             
 initiateTransition :: Hybrid k v -> IO ()
-initiateTransition r = undefined
+initiateTransition r =
+  do state <- readIORef r;
+     case state of
+       A s1 -> do emptyS2 <- newS2;
+                  cas_state <- atomicModifyIORef' r (fn emptyS2);
+                  case cas_state of
+                    Just s1 -> do
+                      forkIO (copyAB r s1 emptyS2)
+                      return ()
+                    Nothing -> return ()
+               where
+                 fn s2 x = case x of
+                   A s1 -> (AB s1 s2, Just s1)
+                   B s2 -> (B s2, Nothing)
+                   AB s1 s2 -> (AB s1 s2, Nothing)
+                   BA s2 s1 -> (BA s2 s1, Nothing)
+       B s2 -> do emptyS1 <- newS1;
+                  cas_state <- atomicModifyIORef' r (fn emptyS1);
+                  case cas_state of
+                    Just s2 -> do
+                      forkIO (copyBA r s2 emptyS1)
+                      return ()
+                    Nothing -> return ()
+               where
+                 fn s1 x = case x of
+                   A s1 -> (A s1, Nothing)
+                   B s2 -> (BA s2 s1, Just s2)
+                   AB s1 s2 -> (AB s1 s2, Nothing)
+                   BA s2 s1 -> (BA s2 s1, Nothing)
+       AB _ _ -> return ()
+       BA _ _ -> return ()
 
 get :: k -> Hybrid k v -> IO (Maybe v)
 get k r =
@@ -31,8 +63,13 @@ get k r =
                Nothing -> (getS2 k s2)
                Just a -> return (Just a)
 
-put :: k -> Hybrid k v -> IO (Maybe v)
-put = undefined
+put :: k -> v -> Hybrid k v -> IO (Maybe v)
+put k v r = do state <- readIORef r;
+               case state of
+                 A s1 -> undefined
+                 B s2 -> undefined
+                 AB s1 s2 -> undefined
+                 BA s2 s1 -> undefined
 
 copyAB :: Hybrid k v -> S1 k v -> S2 k v -> IO ()
 copyAB = undefined
@@ -46,12 +83,8 @@ newS1 :: IO (S1 k v)
 newS1 = undefined
 newS2 :: IO (S2 k v)
 newS2 = undefined
--- need to add copy function in S1 and S2
-copyS1 :: S1 k v -> [(k,v)] -- copy function in S1
-copyS1 = undefined
-copyS2 :: S2 k v -> [(k,v)] -- copy function in S2
-copyS2 = undefined
--- need to modify put, replace atomicModifyioref with tryModify
+
+-- need to modify put, replace atomicModifyIOref with tryModify
 putS1 :: k -> v -> S1 k v -> IO (Maybe v) -- put function in S1
 putS1 = undefined
 putS2 :: k -> v -> S2 k v -> IO (Maybe v) -- put function in S2
