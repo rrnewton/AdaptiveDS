@@ -8,7 +8,8 @@ import Control.Concurrent
 -- data Val t = V t | Tombstone
 -- data EntryVal t = Val t | Copied (Val t)
 -- Maybe we only need this one
-data EntryRef t = Val (IORef t) | Copied (IORef t)
+data EntryRef t = IORef (Val t) | IORef (Copied t)
+-- need more details about atomic operations
 atomicModifyEntryRef' :: EntryRef a -> (a -> a) -> IO (a)
 
 type Hybrid k v = IORef (HyState k v)
