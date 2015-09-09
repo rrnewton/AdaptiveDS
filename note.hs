@@ -9,6 +9,7 @@ import Control.Concurrent
 -- data EntryVal t = Val t | Copied (Val t)
 -- Maybe we only need this one
 data EntryRef t = Val (IORef t) | Copied (IORef t)
+atomicModifyEntryRef' :: EntryRef a -> (a -> a) -> IO (a)
 
 type Hybrid k v = IORef (HyState k v)
 data HyState k v = A (S1 k v) 
