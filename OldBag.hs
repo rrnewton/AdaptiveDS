@@ -15,7 +15,7 @@ import Data.Atomics
 import Data.IORef
 import EntryVal
 
-type PureBag a = IORef [a]
+type PureBag a = IORef [a] ::
 
 {-# INLINABLE newBag #-}
 newBag :: IO (PureBag a)
@@ -31,4 +31,3 @@ remove bag = atomicModifyIORef' bag fn
  where
   fn [] = ([],Nothing)
   fn (h:t) = (t,Just h)
-

@@ -5,16 +5,14 @@ import Data.IORef
 import Data.Atomics
 import Control.Concurrent
 
--- data Val t = V t | Tombstone
--- data EntryVal t = Val t | Copied (Val t)
+newtype EntryRef t = MkEntryRef (IORef (EntryVal t))
+data EntryVal t = Val t | Copied t
 
--- Maybe we only need this one
-data EntryRef t = Val    !(IORef t)
-                | Copied !(IORef t)
 
 -- need more details about atomic operations
 atomicModifyEntryRef' :: EntryRef a -> (a -> a) -> IO (a)
 atomicModifyEntryRef' = undefined
+-- RRN: See atomicModifyIORefCAS for reference
 
 type Hybrid k v = IORef (HyState k v)
 data HyState k v = A (S1 k v)
@@ -87,8 +85,10 @@ copyBA = undefined
 
 data S1 k v = UndefinedS1
 data S2 k v = UndefinedS2
+
 newS1 :: IO (S1 k v)
 newS1 = undefined
+
 newS2 :: IO (S2 k v)
 newS2 = undefined
 
