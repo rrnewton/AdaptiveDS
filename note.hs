@@ -7,17 +7,21 @@ import Control.Concurrent
 
 -- data Val t = V t | Tombstone
 -- data EntryVal t = Val t | Copied (Val t)
+
 -- Maybe we only need this one
-data EntryRef t = IORef (Val t) | IORef (Copied t)
+data EntryRef t = Val    !(IORef t)
+                | Copied !(IORef t)
+
 -- need more details about atomic operations
 atomicModifyEntryRef' :: EntryRef a -> (a -> a) -> IO (a)
+atomicModifyEntryRef' = undefined
 
 type Hybrid k v = IORef (HyState k v)
-data HyState k v = A (S1 k v) 
+data HyState k v = A (S1 k v)
                  | AB (S1 k v) (S2 k v)
                  | B (S2 k v)
                  | BA (S2 k v) (S1 k v)
-            
+
 initiateTransition :: Hybrid k v -> IO ()
 initiateTransition r =
   do state <- readIORef r;
